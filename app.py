@@ -60,7 +60,7 @@ def get_allOrders():
     orderList = []
     orders = Order.query.all()
     for order in orders:
-        thisorder = {"Id":order.id, "Orderer":order.customer.username, "Items":[{"Name":row.itemonrow.productName, "Amount":row.count} for row in order.orderrow]}
+        thisorder = {"Id":order.id, "Orderer":order.customer.username, "status":order.status, "Items":[{"Name":row.itemonrow.productName, "Amount":row.count} for row in order.orderrow]}
         orderList.append(thisorder)
     return jsonify(orderList)
 
@@ -76,12 +76,25 @@ def get_order(order_id):
     orderList = []
     orders = Order.query.filter_by(id = order_id).all()
     for order in orders:
-        orderList.append({"Orderer":order.customer.username, "Items":[{"Name":row.itemonrow.productName, "Amount":row.count} for row in order.orderrow]})
+        orderList.append({"Orderer":order.customer.username, "status":order.status, "Items":[{"Name":row.itemonrow.productName, "Amount":row.count} for row in order.orderrow]})
     
     if len(orderList) == 0:
         abort(404)
     
     return jsonify(orderList)
+
+@app.route('/report/api/v1.0/myorders/<string:useremail>', methods=['GET'])
+def get_userorder(useremail):
+    userorderList = []
+    userorders = User.query.filter_by(username = useremail).all()
+    for userorder in userorders:
+        thisorder = {"Email":userorder.username, "Orders":[{"orderid":order.id, "orderStatus":order.status, "items":[{"name":row.itemonrow.productName, "unitPrice":row.itemonrow.productPrice, "amount":row.count} for row in order.orderrow]} for order in userorder.order]}
+        userorderList.append(thisorder)
+
+    if len(userorderList) == 0:
+        abort(404)
+
+    return jsonify(userorderList)
 
 @app.route('/report/api/v1.0/neworder', methods=['POST'])
 def new_order():
@@ -109,6 +122,21 @@ def new_order():
     db.session.commit()
 
     return jsonify({'order': 'created'}), 201
+
+@app.route('/report/api/v1.0/updateorder', methods=['POST'])
+def update_order():
+    if not request.json or not 'id' in request.json or not 'status' in request.json:
+        abort(400)
+
+    o = Order.query.get(request.json['id'])
+    if o is None:
+        return jsonify({"order":"not found"})
+
+    else:
+        o.status=request.json['status']
+        db.session.add(o)
+        db.session.commit()
+        return jsonify({"orderStatus":"updated"})
 
 if __name__ == '__main__':
     app.run(debug=True)
