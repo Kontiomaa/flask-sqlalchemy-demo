@@ -73,15 +73,14 @@ def get_orderCount():
 
 @app.route('/report/api/v1.0/order/<int:order_id>', methods=['GET'])
 def get_order(order_id):
-    orderList = []
-    orders = Order.query.filter_by(id = order_id).all()
-    for order in orders:
-        orderList.append({"Orderer":order.customer.username, "status":order.status, "Items":[{"Name":row.itemonrow.productName, "Amount":row.count} for row in order.orderrow]})
+    order = Order.query.get(order_id)
     
-    if len(orderList) == 0:
+    if order is None:
         abort(404)
-    
-    return jsonify(orderList)
+
+    orderData = {"Orderer":order.customer.username, "status":order.status, "Items":[{"Name":row.itemonrow.productName, "Amount":row.count} for row in order.orderrow]}
+
+    return jsonify(orderData)
 
 @app.route('/report/api/v1.0/myorders/<string:useremail>', methods=['GET'])
 def get_userorder(useremail):
